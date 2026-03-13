@@ -1,12 +1,17 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist",
+    "target": "ESNext",
+    "module": "NodeNext",
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
     "rootDir": "./src",
-    "baseUrl": ".",
-    "paths": {
-      "$shared/*": ["../../shared/*"]
-    }
+    "outDir": "./dist"
   },
-  "include": ["src/**/*.ts", "../../shared/**/*.ts"]
+  "exclude": ["node_modules"]
 }
