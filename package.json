@@ -7,8 +7,9 @@
     "build": "pnpm recursive run build",
     "lint": "pnpm recursive run lint",
     "test": "pnpm recursive run test",
-    "db:generate": "pnpm --filter=backend drizzle-kit generate",
-    "db:push": "pnpm --filter=backend drizzle-kit push",
+    "db:generate": "pnpm --filter=backend db:generate",
+    "db:push": "pnpm --filter=backend db:push",
+    "db:seed": "pnpm --filter=backend db:seed",
     "backend:deploy": "pnpm --filter=backend deploy",
     "frontend:deploy": "pnpm --filter=frontend deploy"
   },
