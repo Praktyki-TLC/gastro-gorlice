@@ -2,9 +2,6 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "paths": {
-      "#shared/*": ["../../shared/*"]
-    }
+    "moduleResolution": "Bundler"
   }
 }
