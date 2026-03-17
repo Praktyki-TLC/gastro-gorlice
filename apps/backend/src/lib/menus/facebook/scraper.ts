@@ -1,9 +1,9 @@
 import { DailyMenuContent, ProcessedPost, ScrapedPost } from "shared";
 import { type BrowserContext } from "playwright";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { readFile } from 'fs/promises';
-import { fileURLToPath } from 'url';
-import path from 'path';
+import { readFile } from "fs/promises";
+import { fileURLToPath } from "url";
+import path from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,64 +14,93 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function scrapeFacebookPosts(
     context: BrowserContext,
-    url: string
+    url: string,
 ): Promise<ScrapedPost[]> {
     const mobileUrl = url.replace("www.facebook.com", "m.facebook.com");
     const page = await context.newPage();
 
-    await page.goto(mobileUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(mobileUrl, {
+        waitUntil: "domcontentloaded",
+        timeout: 30000,
+    });
+    await page.waitForTimeout(5000);
 
     const postsData = page.evaluate(() => {
         const dateElements = Array.from(
-            document.querySelectorAll("div[data-type='container'] div[data-type='container'] div:last-child div:nth-child(2) :nth-child(2)[data-mcomponent='TextArea'][data-type='text'][aria-label][data-focusable]")
+            document.querySelectorAll(
+                "div[data-type='container'] div[data-type='container'] div:last-child div:nth-child(2) :nth-child(2)[data-mcomponent='TextArea'][data-type='text'][aria-label][data-focusable]",
+            ),
         );
 
-        return dateElements.map((x) => {
-            try {
-                const postDate = x.getAttribute("aria-label") || "";
-                const postContainer = x.parentElement?.parentElement?.parentElement?.parentElement;
-                const contentContainer = postContainer?.nextSibling as HTMLElement;
+        console.log(`Znaleziono ${dateElements.length} potencjalnych postów.`);
 
-                const textSpan = contentContainer?.querySelector("div div div div span") as HTMLElement;
-                if (textSpan && textSpan.nextSibling) (textSpan.nextSibling as HTMLElement).click();
-                const content = textSpan ? textSpan.textContent || "" : "";
+        return dateElements
+            .map((x) => {
+                try {
+                    const postDate = x.getAttribute("aria-label") || "";
+                    const postContainer =
+                        x.parentElement?.parentElement?.parentElement
+                            ?.parentElement;
+                    const contentContainer =
+                        postContainer?.nextSibling as HTMLElement;
 
-                const image = (x.parentElement?.parentElement?.parentElement?.parentElement?.nextSibling?.nextSibling as HTMLDivElement)?.querySelector("div div img")?.getAttribute("src");
+                    const textSpan = contentContainer?.querySelector(
+                        "div div div div span",
+                    ) as HTMLElement;
+                    if (textSpan && textSpan.nextSibling)
+                        (textSpan.nextSibling as HTMLElement).click();
+                    const content = textSpan ? textSpan.textContent || "" : "";
 
-                return {
-                    postDate,
-                    content,
-                    image
-                }
-            } catch (_e) {
-                return null;
-            }
-        })
-            .filter(post => post && post.postDate.match(/, Publiczne/))
-            .map(post => {
-                return {
-                    ...post!,
-                    postDate: post!.postDate.replace(/, Publiczne/, "").trim()
+                    const image = (
+                        x.parentElement?.parentElement?.parentElement
+                            ?.parentElement?.nextSibling
+                            ?.nextSibling as HTMLDivElement
+                    )
+                        ?.querySelector("div div img")
+                        ?.getAttribute("src");
+
+                    return {
+                        postDate,
+                        content,
+                        image,
+                    };
+                } catch (_e) {
+                    return null;
                 }
             })
-            .filter(post => post !== null);
-    })
+            .filter((post) => post && post.postDate.match(/, Publiczne/))
+            .map((post) => {
+                return {
+                    ...post!,
+                    postDate: post!.postDate.replace(/, Publiczne/, "").trim(),
+                };
+            })
+            .filter((post) => post !== null);
+    });
 
     return postsData;
 }
 
-export async function processFacebookPosts(context: BrowserContext, posts: ScrapedPost[]): Promise<ProcessedPost[]> {
-    return Promise.all(posts.map(async (post) => {
-        const imageData = post.image ? await getImageBase64(context, post.image) : null;
-        return {
-            ...post,
-            imageData
-        }
-    }))
+export async function processFacebookPosts(
+    context: BrowserContext,
+    posts: ScrapedPost[],
+): Promise<ProcessedPost[]> {
+    return Promise.all(
+        posts.map(async (post) => {
+            const imageData = post.image
+                ? await getImageBase64(context, post.image)
+                : null;
+            return {
+                ...post,
+                imageData,
+            };
+        }),
+    );
 }
 
-export async function analyzeFacebookPosts(posts: ProcessedPost[]): Promise<Record<string, DailyMenuContent>> {
+export async function analyzeFacebookPosts(
+    posts: ProcessedPost[],
+): Promise<Record<string, DailyMenuContent>> {
     if (posts.length === 0) return {};
 
     const model = genAI.getGenerativeModel({
@@ -80,21 +109,31 @@ export async function analyzeFacebookPosts(posts: ProcessedPost[]): Promise<Reco
     });
 
     const now = new Date();
-    const todayStr = now.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const todayStr = now.toLocaleDateString("pl-PL", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    });
     const todayISO = now.toISOString().split("T")[0];
 
-    const filePath = path.join(__dirname, 'prompt.txt');
-    const promptText = (await readFile(filePath, 'utf-8')).replace('[todayStr]', todayStr).replace('[todayISO]', todayISO);
+    const filePath = path.join(__dirname, "prompt.txt");
+    const promptText = (await readFile(filePath, "utf-8"))
+        .replace("[todayStr]", todayStr)
+        .replace("[todayISO]", todayISO);
 
     const parts: any[] = [{ text: promptText }];
     posts.forEach((p, i) => {
-        parts.push({ text: `--- POST #${i + 1} (Data z Facebooka: ${p.postDate}) ---\nTREŚĆ: ${p.content}` });
+        parts.push({
+            text: `--- POST #${i + 1} (Data z Facebooka: ${p.postDate}) ---\nTREŚĆ: ${p.content}`,
+        });
         if (p.imageData) parts.push(p.imageData);
     });
 
     const result = await model.generateContent(parts);
-    const text = result.response.text();
-    console.log(text);
 
-    return {}
+    let text = result.response.text().trim();
+    text = text.replace(/^[^{|[^\\[]*/, "").replace(/[^}\\]]*$/, "");
+    console.log("AI RESPONSE:", text);
+    return JSON.parse(text);
 }
