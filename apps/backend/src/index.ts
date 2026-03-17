@@ -1,21 +1,24 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { MenusManager } from "./lib/menus/MenusManager";
+
+import adminRouter from "./routers/adminRouter";
 
 const app = new Hono();
 
-new MenusManager().updateAllMissingMenus();
+app.route("/admin", adminRouter);
 
 app.get("/", (c) => {
-    return c.text("Hello Hono!");
+    return c.text("👋 gastro-gorlice api");
 });
 
 serve(
     {
         fetch: app.fetch,
-        port: 4202,
+        port: 6000,
     },
     (info) => {
-        console.log(`Server is running on http://localhost:${info.port}`);
+        console.log(`Serwer chodzi na http://localhost:${info.port}`);
     },
 );
+
+export default app;
