@@ -81,8 +81,6 @@ export class MenusManager {
 
         const processedPosts = await processFacebookPosts(this.context as BrowserContext, posts);
         this.log(`     Znaleziono ${processedPosts.filter(p => !!p.imageData).length} zdjęć postów.`);
-
-        console.log(JSON.stringify(processedPosts.map(x => ({...x, imageData: null})), null, 2));
     }
 
     private async checkIfMenuExists(
