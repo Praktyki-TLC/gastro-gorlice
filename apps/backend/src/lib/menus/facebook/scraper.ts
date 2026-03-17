@@ -1,6 +1,16 @@
-import { ProcessedPost, ScrapedPost } from "shared";
+import { DailyMenuContent, ProcessedPost, ScrapedPost } from "shared";
 import { type BrowserContext } from "playwright";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { readFile } from 'fs/promises';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 import { getImageBase64 } from "../../utils";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function scrapeFacebookPosts(
     context: BrowserContext,
@@ -61,4 +71,30 @@ export async function processFacebookPosts(context: BrowserContext, posts: Scrap
     }))
 }
 
-export async function analyzeFacebookPosts(context: BrowserContext, posts: ScrapedPost[]) {}
+export async function analyzeFacebookPosts(posts: ProcessedPost[]): Promise<Record<string, DailyMenuContent>> {
+    if (posts.length === 0) return {};
+
+    const model = genAI.getGenerativeModel({
+        model: "gemini-3.1-flash-lite-preview",
+        generationConfig: { responseMimeType: "application/json" },
+    });
+
+    const now = new Date();
+    const todayStr = now.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const todayISO = now.toISOString().split("T")[0];
+
+    const filePath = path.join(__dirname, 'prompt.txt');
+    const promptText = (await readFile(filePath, 'utf-8')).replace('[todayStr]', todayStr).replace('[todayISO]', todayISO);
+
+    const parts: any[] = [{ text: promptText }];
+    posts.forEach((p, i) => {
+        parts.push({ text: `--- POST #${i + 1} (Data z Facebooka: ${p.postDate}) ---\nTREŚĆ: ${p.content}` });
+        if (p.imageData) parts.push(p.imageData);
+    });
+
+    const result = await model.generateContent(parts);
+    const text = result.response.text();
+    console.log(text);
+
+    return {}
+}

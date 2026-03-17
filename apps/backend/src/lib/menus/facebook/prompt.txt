@@ -1,4 +1,4 @@
-Jesteś ekspertem od dań dnia w restauracjach. Dzisiaj jest [ISO_DATE].
+Jesteś ekspertem od dań dnia w restauracjach. Dzisiaj jest [todayStr] (ISO: [todayISO])
 
 Dostaniesz dane postów z Facebooka w jsonie w formacie ProcessedPost[]
 
