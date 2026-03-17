@@ -24,6 +24,9 @@ export const restaurants = pgTable("restaurants", {
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export type RestaurantInsert = typeof restaurants.$inferInsert;
+export type RestaurantSelect = typeof restaurants.$inferSelect;
+
 /* Menus table */
 export const menus = pgTable("menus", {
     id: serial("id").primaryKey(),
@@ -42,7 +45,10 @@ export const menus = pgTable("menus", {
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-/* Relations */
+export type MenuInsert = typeof menus.$inferInsert;
+export type MenuSelect = typeof menus.$inferSelect;
+
+/* Restaurant->Menus Relations */
 export const restaurantsRelations = relations(restaurants, ({ many }) => ({
     menus: many(menus),
 }));
@@ -60,3 +66,16 @@ export const subscriptions = pgTable("subscriptions", {
     keys: jsonb("keys").$type<PushSubscriptionKeys>().notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export type SubscriptionInsert = typeof subscriptions.$inferInsert;
+export type SunscriptionSelect = typeof subscriptions.$inferSelect;
+
+export const menusLogs = pgTable("menus_logs", {
+    id: serial("id").primaryKey(),
+    log: text("log").notNull(),
+    date: timestamp("date").defaultNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull()
+})
+
+export type MenusLogInsert = typeof menusLogs.$inferInsert;
+export type MenusLogSelect = typeof menusLogs.$inferSelect;
