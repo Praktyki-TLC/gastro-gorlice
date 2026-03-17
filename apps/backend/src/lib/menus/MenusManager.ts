@@ -1,7 +1,7 @@
 import { chromium, type BrowserContext, devices } from "playwright";
 import { type DailyMenuContent, db, menus, restaurants, RestaurantSelect } from "shared";
 import { eq, and, sql } from "drizzle-orm";
-import { processFacebookPosts, scrapeFacebookPosts } from "./facebook/scraper";
+import { analyzeFacebookPosts, processFacebookPosts, scrapeFacebookPosts } from "./facebook/scraper";
 
 export class MenusManager {
     private context: BrowserContext | null = null;
@@ -63,8 +63,8 @@ export class MenusManager {
                 continue;
             }
 
-            switch(restaurant.provider) {
-                case("facebook"): {
+            switch (restaurant.provider) {
+                case ("facebook"): {
                     await this.getMenusFromFacebook(restaurant);
                     break;
                 }
@@ -73,7 +73,7 @@ export class MenusManager {
     }
 
     private async getMenusFromFacebook(restaurant: RestaurantSelect) {
-        if(!restaurant.scrapingUrl) return;
+        if (!restaurant.scrapingUrl) return;
 
         this.log(`  📱 Scrapowanie: ${restaurant.scrapingUrl}`);
         const posts = await scrapeFacebookPosts(this.context as BrowserContext, restaurant.scrapingUrl);
@@ -81,6 +81,17 @@ export class MenusManager {
 
         const processedPosts = await processFacebookPosts(this.context as BrowserContext, posts);
         this.log(`     Znaleziono ${processedPosts.filter(p => !!p.imageData).length} zdjęć postów.`);
+
+        const menus = await analyzeFacebookPosts(processedPosts);
+        if (menus) {
+            for (const [dateKey, content] of Object.entries(menus)) {
+                const targetDate = new Date(dateKey);
+                await this.saveMenuIfMissing(restaurant.id, targetDate, content);
+                this.log(`     ✨ ${dateKey}.`);
+            }
+        } else {
+            this.log(`     ⚠️ Nie udało się wyodrębnić menu z postów.`);
+        }
     }
 
     private async checkIfMenuExists(
