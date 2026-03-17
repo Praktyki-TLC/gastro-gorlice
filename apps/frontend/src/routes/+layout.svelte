@@ -24,7 +24,7 @@
   </div>
   <div class="flex-none">
     <ul class="menu menu-horizontal px-1">
-      <li><a href="/login" onclick={openLoginModal}>Logowanie</a></li>
+      <li><button onclick={openLoginModal}>Logowanie</button></li>
     </ul>
   </div>
 </div>
