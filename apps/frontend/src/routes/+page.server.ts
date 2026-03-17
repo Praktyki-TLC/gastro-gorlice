@@ -1,13 +1,6 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { BACKEND_URL } from "$env/static/private";
-import type { PageServerLoad, Actions } from "./$types";
-
-export const load: PageServerLoad = async ({ cookies }) => {
-  const auth = cookies.get("admin_auth");
-  return {
-    isLoggedIn: !!auth,
-  };
-};
+import type { Actions } from "./$types";
 
 export const actions: Actions = {
   login: async ({ request, cookies, fetch }) => {
@@ -21,26 +14,24 @@ export const actions: Actions = {
 
     const token = Buffer.from(`${user}:${pass}`).toString("base64");
 
-    try {
-      const res = await fetch(`${BACKEND_URL}/admin/login`, {
-        method: "POST",
-        headers: { Authorization: `Basic ${token}` },
+    const res = await fetch(`${BACKEND_URL}/admin/login`, {
+      method: "POST",
+      headers: { Authorization: `Basic ${token}` },
+    }).catch((err) => {
+      return null;
+    });
+
+    if (res?.ok) {
+      cookies.set("admin_auth", token, {
+        path: "/",
+        httpOnly: true,
+        sameSite: "strict",
+        maxAge: 60 * 60 * 24 * 7, // 7 dni
       });
-
-      if (res.ok) {
-        cookies.set("admin_auth", token, {
-          path: "/",
-          httpOnly: true,
-          sameSite: "strict",
-          maxAge: 60 * 60 * 24 * 7, // 7 dni
-        });
-        return { success: true };
-      }
-
-      return fail(401, { message: "Błędny login lub hasło" });
-    } catch (err) {
-      return fail(500, { message: "Błąd połączenia z serwerem" });
+      return redirect(303, "/admin");
     }
+
+    return fail(401, { message: "Błędny login lub hasło" });
   },
 
   logout: async ({ cookies }) => {

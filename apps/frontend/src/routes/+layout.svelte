@@ -1,7 +1,8 @@
 <script lang="ts">
   import "./layout.css";
   import favicon from "$lib/assets/favicon.svg";
-  import { enhance } from "$app/forms";
+  import { enhance, applyAction } from "$app/forms";
+  import { goto } from "$app/navigation";
 
   let props = $props();
 
@@ -14,6 +15,12 @@
     e.preventDefault();
     loginModal.showModal();
   }
+
+  $effect(() => {
+    if (props.form?.success) {
+      loginModal.close();
+    }
+  });
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
@@ -24,7 +31,11 @@
   </div>
   <div class="flex-none">
     <ul class="menu menu-horizontal px-1">
-      <li><button onclick={openLoginModal}>Logowanie</button></li>
+      {#if props.data.isLoggedIn}
+        <li><a href="/admin">Panel</a></li>
+      {:else}
+        <li><button onclick={openLoginModal}>Zaloguj się</button></li>
+      {/if}
     </ul>
   </div>
 </div>
@@ -41,7 +52,21 @@
     <h3 class="text-lg font-bold">Logowanie</h3>
 
     <!-- Username input -->
-    <form action="/?/login" method="post" use:enhance>
+    <form
+      action="/?/login"
+      method="post"
+      use:enhance={({ formElement, formData, action, cancel }) => {
+        return async ({ result }) => {
+          // `result` is an `ActionResult` object
+          if (result.type === "redirect") {
+            loginModal.close();
+            goto(result.location);
+          } else {
+            await applyAction(result);
+          }
+        };
+      }}
+    >
       <label class="input my-4 w-full">
         <svg
           class="h-[1em] opacity-50"
