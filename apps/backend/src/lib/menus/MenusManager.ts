@@ -1,89 +1,102 @@
-import { chromium, type BrowserContext } from "playwright";
-import { db, restaurants, menus } from "shared";
+import { chromium, type BrowserContext, devices } from "playwright";
+import { type DailyMenuContent, db, menus, restaurants, RestaurantSelect } from "shared";
 import { eq, and, sql } from "drizzle-orm";
-import { scrapeFacebookPage, analyzeMenuWithAI } from "./facebook/scraper";
-import type { WeeklySchedule, DailyMenuContent } from "shared";
+import { processFacebookPosts, scrapeFacebookPosts } from "./facebook/scraper";
 
 export class MenusManager {
     private context: BrowserContext | null = null;
+    private currentLog: string | null = null;
 
     private async initContext() {
-        const browser = await chromium.launch({ headless: true });
+        const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled']
+        });
+
+        const androidConfig = devices['Pixel 7'];
+
         this.context = await browser.newContext({
-            userAgent:
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            ...androidConfig,
+            userAgent: "Mozilla/5.0 (Linux; Android 16; Pixel 7 Build/AP3A.240617.008) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.204 Mobile Safari/537.36",
+            locale: 'pl-PL',
+            timezoneId: 'Europe/Warsaw',
+        });
+        await this.context.addInitScript(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
         });
 
         if (process.env.FACEBOOK_COOKIES) {
-            const raw = JSON.parse(process.env.FACEBOOK_COOKIES);
-            const cookies = raw.map((c: any) => ({
-                ...c,
-                sameSite: c.sameSite
-                    ? c.sameSite === "no_restriction"
-                        ? "None"
-                        : c.sameSite.charAt(0).toUpperCase() +
-                          c.sameSite.slice(1)
-                    : "Lax",
-            }));
-            await this.context.addCookies(cookies);
+            try {
+                const raw = JSON.parse(process.env.FACEBOOK_COOKIES);
+                const cookies = raw.map((c: any) => ({
+                    ...c,
+                    sameSite: c.sameSite
+                        ? c.sameSite === "no_restriction"
+                            ? "None"
+                            : c.sameSite.charAt(0).toUpperCase() +
+                            c.sameSite.slice(1)
+                        : "Lax",
+                }));
+                await this.context.addCookies(cookies);
+                this.log("Załadowano ciasteczka Facebooka.", "info");
+            } catch (e) {
+                this.log("Błąd parsowania ciasteczek:" + e, "error");
+            }
         }
     }
 
-    async updateAllMissingMenus() {
+    public async updateMissingMenus() {
         if (!this.context) await this.initContext();
+        this.currentLog = "";
 
-        const allRes = await db.select().from(restaurants);
+        const allRestaurants = await db.select().from(restaurants);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        for (const res of allRes) {
-            console.log(`\n🔍 Sprawdzam ${res.name}...`);
+        for (const restaurant of allRestaurants) {
+            this.log(`\n🔍 Sprawdzam ${restaurant.name}...`);
 
-            const hasToday = await this.checkIfMenuExists(res.id, today);
-            if (hasToday && res.slug !== "podzamcze") {
-                console.log(`✅ Menu dla ${res.name} już aktualne.`);
+            const hasToday = await this.checkIfMenuExists(restaurant.id, today);
+
+            if (hasToday) {
+                this.log(`Menu dla ${restaurant.name} już aktualne.`, "success");
                 continue;
             }
 
-            try {
-                if (res.provider === "facebook" && res.scrapingUrl) {
-                    const rawPosts = await scrapeFacebookPage(
-                        this.context!,
-                        res.scrapingUrl,
-                    );
-                    const schedule: WeeklySchedule | null =
-                        await analyzeMenuWithAI(rawPosts);
-
-                    if (schedule) {
-                        for (const [dateKey, content] of Object.entries(
-                            schedule,
-                        )) {
-                            const targetDate = new Date(dateKey);
-                            await this.saveMenuIfMissing(
-                                res.id,
-                                targetDate,
-                                content as DailyMenuContent,
-                            );
-                        }
-                    }
+            switch(restaurant.provider) {
+                case("facebook"): {
+                    await this.getMenusFromFacebook(restaurant);
+                    break;
                 }
-            } catch (err) {
-                console.error(`❌ Błąd ${res.name}:`, (err as any).message);
             }
         }
+    }
+
+    private async getMenusFromFacebook(restaurant: RestaurantSelect) {
+        if(!restaurant.scrapingUrl) return;
+
+        this.log(`  📱 Scrapowanie: ${restaurant.scrapingUrl}`);
+        const posts = await scrapeFacebookPosts(this.context as BrowserContext, restaurant.scrapingUrl);
+        this.log(`     Znaleziono ${posts.length} postów.`);
+
+        const processedPosts = await processFacebookPosts(this.context as BrowserContext, posts);
+        this.log(`     Znaleziono ${processedPosts.filter(p => !!p.imageData).length} zdjęć postów.`);
+
+        console.log(JSON.stringify(processedPosts.map(x => ({...x, imageData: null})), null, 2));
     }
 
     private async checkIfMenuExists(
         restaurantId: number,
         date: Date,
     ): Promise<boolean> {
+        const dateStr = date.toISOString().split('T')[0];
         const result = await db
             .select()
             .from(menus)
             .where(
                 and(
                     eq(menus.restaurantId, restaurantId),
-                    sql`DATE(${menus.date}) = DATE(${date.toISOString()})`,
+                    sql`DATE(${menus.date}) = ${dateStr}`,
                 ),
             )
             .limit(1);
@@ -95,12 +108,11 @@ export class MenusManager {
         date: Date,
         content: DailyMenuContent,
     ) {
-        // 1. Sprawdź czy menu nie jest puste (brak zup i brak dań)
         const isEmpty =
             content.soups.length === 0 && content.courses.length === 0;
 
         if (isEmpty) {
-            console.log(
+            this.log(
                 `  ⚠️ Puste menu dla restauracji #${restaurantId} na dzień ${date.toISOString().split("T")[0]}. Pomijam.`,
             );
             return;
@@ -113,11 +125,43 @@ export class MenusManager {
                 date,
                 content: content as any,
             });
-            console.log(`  ✨ Zapisano: ${date.toISOString().split("T")[0]}`);
+            this.log(`  ✨ Zapisano nowe menu: ${date.toISOString().split("T")[0]}`);
         }
     }
 
     async cleanup() {
-        if (this.context) await this.context.browser()?.close();
+        if (this.context) {
+            const browser = this.context.browser();
+            await browser?.close();
+            this.context = null;
+        }
+    }
+
+    async log(text: string, severity?: "log" | "success" | "info" | "warning" | "error") {
+        switch (severity) {
+            case "log":
+                console.log(text);
+                break;
+            case "success":
+                text = `✅` + text;
+                console.log(text);
+                break;
+            case "info":
+                text = "ℹ️ " + text;
+                console.info(text)
+            case "warning":
+                text = "⚠️" + text;
+                console.warn(text);
+                break;
+            case "error":
+                text = `❌` + text
+                console.error(text)
+                break;
+            default:
+                console.log(text)
+                break;
+        }
+
+        this.currentLog += text;
     }
 }
