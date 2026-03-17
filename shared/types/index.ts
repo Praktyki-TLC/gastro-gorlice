@@ -21,6 +21,15 @@ export interface ScrapedPost {
     postDate: string;
 }
 
+export interface ProcessedPost extends ScrapedPost {
+    imageData?: {
+        inlineData: {
+            data: string;
+            mimeType: string;
+        }
+    } | null;
+}
+
 export interface PushSubscriptionKeys {
     p256dh: string;
     auth: string;
