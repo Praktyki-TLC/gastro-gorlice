@@ -41,4 +41,4 @@ Odpowiedz w formacie JSON zgodnie z poniższym schematem:
     }
 }
 
-Jeżeli nie znajdziesz żadnych dań dania, odpowiedz pustym arrayem: []
+Jeżeli nie znajdziesz żadnych dań dania, odpowiedz pustym obiektem: {}
