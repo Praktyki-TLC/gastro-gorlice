@@ -1,10 +1,23 @@
 import { serve } from "@hono/node-server";
+import { cors } from "hono/cors";
+import { CronJob } from "cron";
 import { Hono } from "hono";
 
+import { MenusManager } from "./lib/menus/MenusManager";
 import adminRouter from "./routers/adminRouter";
-import { cors } from "hono/cors";
+import mainRouter from "./routers/mainRouter";
 
 const app = new Hono();
+
+export const menusManager = new MenusManager();
+new CronJob("10,0,30 10,11 * * 1-5", async () =>{
+    await menusManager.updateMissingMenus();
+})
+if(process.env.NODE_ENV === "development") {
+    (async () => {
+        await menusManager.updateMissingMenus();
+    })();
+}
 
 app.use(
     "*",
@@ -16,11 +29,8 @@ app.use(
     }),
 );
 
+app.route("/", mainRouter);
 app.route("/admin", adminRouter);
-
-app.get("/", (c) => {
-    return c.text("👋 gastro-gorlice api");
-});
 
 serve(
     {
