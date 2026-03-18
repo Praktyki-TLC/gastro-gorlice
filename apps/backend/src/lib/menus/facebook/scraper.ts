@@ -27,7 +27,6 @@ export async function scrapeFacebookPosts(
 
     await page.waitForTimeout(3000);
 
-    
     const postsData = await page.evaluate(async () => {
         const dateElements = Array.from(
             document.querySelectorAll(
@@ -81,14 +80,23 @@ export async function scrapeFacebookPosts(
                     )?.querySelector("div div div div span")?.textContent || "";
 
                 /* Obrazek */
-                let image: string | null = (x?.parentElement?.parentElement?.parentElement?.parentElement?.nextSibling as HTMLElement)?.querySelector("div div:last-child div img")?.getAttribute("src") || null;
+                let image: string | null =
+                    (
+                        x?.parentElement?.parentElement?.parentElement
+                            ?.parentElement?.nextSibling as HTMLElement
+                    )
+                        ?.querySelector("div div:last-child div img")
+                        ?.getAttribute("src") || null;
 
-                if(!image) image = (
-                    x.parentElement?.parentElement?.parentElement?.parentElement
-                        ?.nextSibling?.nextSibling as HTMLDivElement
-                )
-                    ?.querySelector("div div img")
-                    ?.getAttribute("src") || null;
+                if (!image)
+                    image =
+                        (
+                            x.parentElement?.parentElement?.parentElement
+                                ?.parentElement?.nextSibling
+                                ?.nextSibling as HTMLDivElement
+                        )
+                            ?.querySelector("div div img")
+                            ?.getAttribute("src") || null;
 
                 return {
                     postDate,
