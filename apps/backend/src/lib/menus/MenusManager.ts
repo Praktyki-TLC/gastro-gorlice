@@ -100,27 +100,33 @@ export class MenusManager {
         }
 
         this.log("\n✅ Aktualizacja zakończona.");
-        
+
         // Zapisz log do pliku
-        db.insert(menusLogs).values({
-            log: this.currentLog || "",
-            createdAt: new Date(),
-        }).then(() => {
-            this.log("Log zapisany do bazy danych.", "info");
-        }).catch((e) => {
-            this.log("Błąd zapisu logu do bazy danych: " + e, "error");
-        });
+        db.insert(menusLogs)
+            .values({
+                log: this.currentLog || "",
+                createdAt: new Date(),
+            })
+            .then(() => {
+                this.log("Log zapisany do bazy danych.", "info");
+            })
+            .catch((e) => {
+                this.log("Błąd zapisu logu do bazy danych: " + e, "error");
+            });
     }
 
     private async getMenusFromFacebook(restaurant: RestaurantSelect) {
         if (!restaurant.scrapingUrl) return;
 
         this.log(`  📱 Scrapowanie: ${restaurant.scrapingUrl}`);
-        const posts = await scrapeFacebookPosts(
-            this.context as BrowserContext,
-            restaurant.scrapingUrl,
-        );
+        const posts = (
+            await scrapeFacebookPosts(
+                this.context as BrowserContext,
+                restaurant.scrapingUrl,
+            )
+        ).slice(0, 5);
         this.log(`     Znaleziono ${posts.length} postów.`);
+        this.log(posts);
 
         const processedPosts = await processFacebookPosts(
             this.context as BrowserContext,
@@ -139,7 +145,6 @@ export class MenusManager {
                     targetDate,
                     content,
                 );
-                this.log(`     ✨ ${dateKey}.`);
             }
         } else {
             this.log(`     ⚠️ Nie udało się wyodrębnić menu z postów.`);
@@ -187,7 +192,7 @@ export class MenusManager {
                 content: content as any,
             });
             this.log(
-                `  ✨ Zapisano nowe menu: ${date.toISOString().split("T")[0]}`,
+                `     ✨ Zapisano nowe menu: ${date.toISOString().split("T")[0]}`,
             );
         }
     }
@@ -201,7 +206,7 @@ export class MenusManager {
     }
 
     async log(
-        text: string,
+        text: any,
         severity?: "log" | "success" | "info" | "warning" | "error",
     ) {
         switch (severity) {
@@ -215,6 +220,7 @@ export class MenusManager {
             case "info":
                 text = "ℹ️ " + text;
                 console.info(text);
+                break;
             case "warning":
                 text = "⚠️ " + text;
                 console.warn(text);
@@ -228,6 +234,6 @@ export class MenusManager {
                 break;
         }
 
-        this.currentLog += text;
+        this.currentLog += "\n" + text;
     }
 }

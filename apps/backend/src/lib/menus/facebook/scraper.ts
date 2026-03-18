@@ -23,51 +23,82 @@ export async function scrapeFacebookPosts(
         waitUntil: "domcontentloaded",
         timeout: 30000,
     });
-    await page.waitForTimeout(5000);
 
-    const postsData = page.evaluate(() => {
+    await page.waitForTimeout(3000);
+
+    
+    const postsData = await page.evaluate(async () => {
         const dateElements = Array.from(
             document.querySelectorAll(
                 "div[data-type='container'] div[data-type='container'] div:last-child div:nth-child(2) :nth-child(2)[data-mcomponent='TextArea'][data-type='text'][aria-label][data-focusable]",
             ),
         );
 
-        console.log(`Znaleziono ${dateElements.length} potencjalnych postów.`);
+        const scrapedPromises = dateElements.map(async (x) => {
+            try {
+                const postDate = x.getAttribute("aria-label") || "";
 
-        return dateElements
-            .map((x) => {
-                try {
-                    const postDate = x.getAttribute("aria-label") || "";
-                    const postContainer =
-                        x.parentElement?.parentElement?.parentElement
-                            ?.parentElement;
-                    const contentContainer =
-                        postContainer?.nextSibling as HTMLElement;
+                const textSpan = (
+                    x.parentElement?.parentElement?.parentElement?.parentElement
+                        ?.nextSibling as HTMLElement
+                )?.querySelector("div div div div span") as HTMLElement;
 
-                    const textSpan = contentContainer?.querySelector(
-                        "div div div div span",
-                    ) as HTMLElement;
-                    if (textSpan && textSpan.nextSibling)
-                        (textSpan.nextSibling as HTMLElement).click();
-                    const content = textSpan ? textSpan.textContent || "" : "";
+                /* Rozwijanie tekstu z czekaniem */
+                if (textSpan && textSpan.nextSibling) {
+                    const expandButton = textSpan.nextSibling as HTMLElement;
+                    const oldText = textSpan.textContent;
 
-                    const image = (
-                        x.parentElement?.parentElement?.parentElement
-                            ?.parentElement?.nextSibling
-                            ?.nextSibling as HTMLDivElement
-                    )
-                        ?.querySelector("div div img")
-                        ?.getAttribute("src");
+                    expandButton.click();
 
-                    return {
-                        postDate,
-                        content,
-                        image,
-                    };
-                } catch (_e) {
-                    return null;
+                    await new Promise((resolve) => {
+                        let attempts = 0;
+                        const checkInterval = setInterval(() => {
+                            attempts++;
+                            if (
+                                (
+                                    (
+                                        x.parentElement?.parentElement
+                                            ?.parentElement?.parentElement
+                                            ?.nextSibling as HTMLElement
+                                    )?.querySelector(
+                                        "div div div div span",
+                                    ) as HTMLElement
+                                )?.textContent !== oldText ||
+                                attempts > 15
+                            ) {
+                                clearInterval(checkInterval);
+                                resolve(true);
+                            }
+                        }, 100);
+                    });
                 }
-            })
+
+                const content =
+                    (
+                        x.parentElement?.parentElement?.parentElement
+                            ?.parentElement?.nextSibling as HTMLElement
+                    )?.querySelector("div div div div span")?.textContent || "";
+
+                /* Obrazek */
+                const image = (
+                    x.parentElement?.parentElement?.parentElement?.parentElement
+                        ?.nextSibling?.nextSibling as HTMLDivElement
+                )
+                    ?.querySelector("div div img")
+                    ?.getAttribute("src");
+
+                return {
+                    postDate,
+                    content,
+                    image,
+                };
+            } catch (_e) {
+                return null;
+            }
+        });
+
+        const results = await Promise.all(scrapedPromises);
+        return results
             .filter((post) => post && post.postDate.match(/, Publiczne/))
             .map((post) => {
                 return {
@@ -78,9 +109,9 @@ export async function scrapeFacebookPosts(
             .filter((post) => post !== null);
     });
 
+    await page.close();
     return postsData;
 }
-
 export async function processFacebookPosts(
     context: BrowserContext,
     posts: ScrapedPost[],
