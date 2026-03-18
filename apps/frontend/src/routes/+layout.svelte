@@ -40,7 +40,7 @@
   </div>
 </div>
 
-<dialog bind:this={loginModal} class="modal modal-bottom sm:modal-middle">
+<dialog bind:this={loginModal} class="modal sm:modal-middle">
   <div class="modal-box">
     <!-- Close button -->
     <form method="dialog">
