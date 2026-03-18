@@ -1,3 +1,5 @@
+export * from './api/menus';
+
 export interface MenuItem {
     name: string;
     price: number | null;
