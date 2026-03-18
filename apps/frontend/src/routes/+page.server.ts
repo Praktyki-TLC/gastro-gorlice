@@ -1,6 +1,16 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { BACKEND_URL } from "$env/static/private";
-import type { Actions } from "./$types";
+import type { Actions, PageServerLoad } from "./$types";
+import type { TodayMenusResponse } from "shared";
+
+export const load: PageServerLoad = async () => {
+  const req = await fetch(`${BACKEND_URL}/menus/today`)
+  const todayMenus: TodayMenusResponse = await req.json();
+
+  return {
+    todayMenus
+  }
+};
 
 export const actions: Actions = {
   login: async ({ request, cookies, fetch }) => {
