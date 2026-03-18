@@ -126,7 +126,6 @@ export class MenusManager {
             )
         ).slice(0, 5);
         this.log(`     Znaleziono ${posts.length} postów.`);
-        this.log(posts);
 
         const processedPosts = await processFacebookPosts(
             this.context as BrowserContext,
@@ -218,7 +217,7 @@ export class MenusManager {
                 console.log(text);
                 break;
             case "info":
-                text = "ℹ️ " + text;
+                text = "ℹ️  " + text;
                 console.info(text);
                 break;
             case "warning":

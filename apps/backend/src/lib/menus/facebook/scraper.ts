@@ -23,6 +23,7 @@ export async function scrapeFacebookPosts(
         waitUntil: "domcontentloaded",
         timeout: 30000,
     });
+    await page.mouse.wheel(0, 1000);
 
     await page.waitForTimeout(3000);
 
@@ -80,12 +81,14 @@ export async function scrapeFacebookPosts(
                     )?.querySelector("div div div div span")?.textContent || "";
 
                 /* Obrazek */
-                const image = (
+                let image: string | null = (x?.parentElement?.parentElement?.parentElement?.parentElement?.nextSibling as HTMLElement)?.querySelector("div div:last-child div img")?.getAttribute("src") || null;
+
+                if(!image) image = (
                     x.parentElement?.parentElement?.parentElement?.parentElement
                         ?.nextSibling?.nextSibling as HTMLDivElement
                 )
                     ?.querySelector("div div img")
-                    ?.getAttribute("src");
+                    ?.getAttribute("src") || null;
 
                 return {
                     postDate,
@@ -165,6 +168,5 @@ export async function analyzeFacebookPosts(
 
     let text = result.response.text().trim();
     text = text.replace(/^[^{|[^\\[]*/, "").replace(/[^}\\]]*$/, "");
-    console.log("AI RESPONSE:", text);
     return JSON.parse(text);
 }
