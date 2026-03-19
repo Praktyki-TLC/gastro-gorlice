@@ -31,6 +31,8 @@
     "vite": "^7.3.1"
   },
   "dependencies": {
-    "shared": "workspace:*"
+    "chart.js": "^4.5.1",
+    "shared": "workspace:*",
+    "svelte-chartjs": "^4.0.1"
   }
 }
