@@ -122,6 +122,10 @@ async function seed() {
                         name: res.name,
                         scrapingUrl: res.scrapingUrl,
                         provider: res.provider as any,
+                        address: res.address,
+                        phoneNumber: res.phoneNumber,
+                        webpage: res.webpage,
+                        imageUrl: res.imageUrl,
                     },
                 });
             console.log(`+ ${res.name}`);
