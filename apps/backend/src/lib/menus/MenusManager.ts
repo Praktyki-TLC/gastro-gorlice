@@ -7,7 +7,7 @@ import {
     restaurants,
     RestaurantSelect,
 } from "shared";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, lte, gte } from "drizzle-orm";
 import {
     analyzeFacebookPosts,
     processFacebookPosts,
@@ -154,14 +154,20 @@ export class MenusManager {
         restaurantId: number,
         date: Date,
     ): Promise<boolean> {
-        const dateStr = date.toISOString().split("T")[0];
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
         const result = await db
             .select()
             .from(menus)
             .where(
                 and(
                     eq(menus.restaurantId, restaurantId),
-                    sql`DATE(${menus.date}) = ${dateStr}`,
+                    gte(menus.date, startOfToday),
+                    lte(menus.date, endOfToday),
                 ),
             )
             .limit(1);
