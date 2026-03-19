@@ -1,6 +1,6 @@
-import { db, menus, restaurants, TodayMenusResponse } from "shared";
+import { db, menus, menusLogs, restaurants, TodayMenusResponse } from "shared";
 import { Hono } from "hono";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 
 const mainRouter = new Hono();
 
@@ -33,7 +33,14 @@ mainRouter.get("/menus/today", async (c) => {
             )
         );
 
-    return c.json<TodayMenusResponse>(results);
+    const lastUpdate = await db.select({
+        date: menusLogs.date
+    }).from(menusLogs).orderBy(desc(menusLogs)).limit(1);
+    
+    return c.json<TodayMenusResponse>({
+        lastUpdate: lastUpdate[0]?.date || null,
+        todayMenus: results
+    });
 })
 
 export default mainRouter;
