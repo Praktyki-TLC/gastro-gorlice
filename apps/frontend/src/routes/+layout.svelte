@@ -15,19 +15,13 @@
     e.preventDefault();
     loginModal.showModal();
   }
-
-  $effect(() => {
-    if (props.form?.success) {
-      loginModal.close();
-    }
-  });
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <div class="navbar shadow-sm bg-base-200 md:px-10 lg:px-20">
   <div class="flex-1">
-    <a class="btn btn-ghost text-xl" href="/">Gastro Gorlice</a>
+    <a class="btn btn-ghost text-xl font-bold" href="/">Gastro Gorlice</a>
   </div>
   <div class="flex-none">
     <ul class="menu menu-horizontal px-1">
@@ -51,13 +45,11 @@
 
     <h3 class="text-lg font-bold">Logowanie</h3>
 
-    <!-- Username input -->
     <form
       action="/?/login"
       method="post"
       use:enhance={({ formElement, formData, action, cancel }) => {
         return async ({ result }) => {
-          // `result` is an `ActionResult` object
           if (result.type === "redirect") {
             loginModal.close();
             goto(result.location);
@@ -67,6 +59,7 @@
         };
       }}
     >
+      <!-- Username input -->
       <label class="input my-4 w-full">
         <svg
           class="h-[1em] opacity-50"
