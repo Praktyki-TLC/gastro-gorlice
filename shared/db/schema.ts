@@ -18,6 +18,11 @@ export const restaurants = pgTable("restaurants", {
     id: serial("id").primaryKey(),
     name: text("name").notNull(),
     slug: text("slug").unique().notNull(),
+
+    phoneNumber: text("phone_number"),
+    address: text("address"),
+    webpage: text("webpage"),
+
     scrapingUrl: text("scraping_url"),
     provider: providerEnum("provider").default("facebook").notNull(),
     imageUrl: text("image_url"),
