@@ -76,7 +76,6 @@ export class MenusManager {
             year: "numeric",
         });
         const todayISO = today.toLocaleDateString("sv-SE");
-        console.log(todayStr, todayISO);
 
         for (const restaurant of allRestaurants) {
             this.log(`\n🔍 Sprawdzam ${restaurant.name}...`);
@@ -101,7 +100,7 @@ export class MenusManager {
 
         this.log("\n✅ Aktualizacja zakończona.");
 
-        // Zapisz log do pliku
+        /* Zapisywanie logów do bazy */
         db.insert(menusLogs)
             .values({
                 log: this.currentLog || "",
@@ -154,10 +153,10 @@ export class MenusManager {
         restaurantId: number,
         date: Date,
     ): Promise<boolean> {
-        const startOfToday = new Date();
+        const startOfToday = new Date(date);
         startOfToday.setHours(0, 0, 0, 0);
 
-        const endOfToday = new Date();
+        const endOfToday = new Date(date);
         endOfToday.setHours(23, 59, 59, 999);
 
         const result = await db
@@ -210,35 +209,24 @@ export class MenusManager {
         }
     }
 
-    async log(
-        text: any,
-        severity?: "log" | "success" | "info" | "warning" | "error",
-    ) {
+    log(text: string, severity: "log" | "success" | "info" | "warning" | "error" = "log") {
+        const icons = {
+            log: "",
+            success: "✅ ",
+            info: "ℹ️ ",
+            warning: "⚠️ ",
+            error: "❌ ",
+        };
+
+        const message = `${icons[severity]}${text}`;
+        
         switch (severity) {
-            case "log":
-                console.log(text);
-                break;
-            case "success":
-                text = `✅ ` + text;
-                console.log(text);
-                break;
-            case "info":
-                text = "ℹ️  " + text;
-                console.info(text);
-                break;
-            case "warning":
-                text = "⚠️ " + text;
-                console.warn(text);
-                break;
-            case "error":
-                text = `❌ ` + text;
-                console.error(text);
-                break;
-            default:
-                console.log(text);
-                break;
+            case "error": console.error(message); break;
+            case "warning": console.warn(message); break;
+            case "info": console.info(message); break;
+            default: console.log(message);
         }
 
-        this.currentLog += "\n" + text;
+        this.currentLog += message + "\n";
     }
 }

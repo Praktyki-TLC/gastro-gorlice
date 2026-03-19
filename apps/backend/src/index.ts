@@ -10,7 +10,7 @@ import mainRouter from "./routers/mainRouter";
 const app = new Hono();
 
 export const menusManager = new MenusManager();
-new CronJob("10,0,30 10,11 * * 1-5", async () =>{
+new CronJob("0,10,30 10,11 * * 1-5", async () =>{
     await menusManager.updateMissingMenus();
 })
 if(process.env.NODE_ENV === "development") {
