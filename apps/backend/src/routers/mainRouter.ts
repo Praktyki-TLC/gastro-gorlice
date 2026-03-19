@@ -19,7 +19,7 @@ mainRouter.get("/menus/today", async (c) => {
         .select({
             name: restaurants.name,
             slug: restaurants.slug,
-            imageUrl: restaurants.imageUrl,
+            sourceUrl: restaurants.scrapingUrl,
 
             content: menus.content,
         })
@@ -39,8 +39,24 @@ mainRouter.get("/menus/today", async (c) => {
     
     return c.json<TodayMenusResponse>({
         lastUpdate: lastUpdate[0]?.date || null,
-        todayMenus: results
+        todayMenus: results.sort((a, b) => a.name.localeCompare(b.name)),
     });
+})
+
+mainRouter.get("/restaurant/:slug", async (c) => {
+    const { slug } = c.req.param();
+
+    const restaurant = await db
+        .select()
+        .from(restaurants)
+        .where(eq(restaurants.slug, slug))
+        .limit(1);
+
+    if (restaurant.length === 0) {
+        return c.json({ error: "Restaurant not found" }, 404);
+    }
+
+    return c.json(restaurant[0]);
 })
 
 export default mainRouter;

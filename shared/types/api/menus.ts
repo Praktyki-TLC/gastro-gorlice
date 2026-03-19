@@ -1,7 +1,7 @@
 export interface TodayMenu {
     name: string;
     slug: string;
-    imageUrl: string | null;
+    sourceUrl: string | null;
     content: {
         soups: {
             name: string;
