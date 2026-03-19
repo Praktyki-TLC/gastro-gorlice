@@ -1,3 +1,4 @@
+export * from './api/restaurants';
 export * from './api/menus';
 
 export interface MenuItem {
