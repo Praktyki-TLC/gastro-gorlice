@@ -1,6 +1,6 @@
-import { db, menus, menusLogs, restaurants, TodayMenusResponse } from "shared";
+import { db, menus, menusLogs, RestaurantDetailsResponse, restaurants, TodayMenusResponse } from "shared";
 import { Hono } from "hono";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sql, asc } from "drizzle-orm";
 
 const mainRouter = new Hono();
 
@@ -46,17 +46,51 @@ mainRouter.get("/menus/today", async (c) => {
 mainRouter.get("/restaurant/:slug", async (c) => {
     const { slug } = c.req.param();
 
-    const restaurant = await db
+    const restaurant = (await db
         .select()
         .from(restaurants)
         .where(eq(restaurants.slug, slug))
-        .limit(1);
+        .limit(1))[0];
 
-    if (restaurant.length === 0) {
+    if (!restaurant) {
         return c.json({ error: "Restaurant not found" }, 404);
     }
 
-    return c.json(restaurant[0]);
+    // Menu price history aggregated by day
+    const menuPriceHistoryByDay = await db
+    .select({
+      date: menus.date,
+      price: sql<number | null>`(${menus.content}->>'fullSetPrice')::numeric`,
+    })
+    .from(menus)
+    .where(eq(menus.restaurantId, restaurant.id))
+    .orderBy(asc(menus.date));
+    
+    const menuPriceHistoryByWeek = await db
+    .select({
+      week: sql<string>`date_trunc('week', ${menus.date})`.as("week"),
+      price: sql<number>`AVG((${menus.content}->>'fullSetPrice')::numeric)`,
+    })
+    .from(menus)
+    .where(eq(menus.restaurantId, restaurant.id))
+    .groupBy(sql`week`) 
+    .orderBy(asc(sql`week`));
+
+    return c.json<RestaurantDetailsResponse>({
+         restaurant: {
+            name: restaurant.name,
+            slug: restaurant.slug,
+            phoneNumber: restaurant.phoneNumber,
+            address: restaurant.address,
+            webpage: restaurant.webpage,
+            imageUrl: restaurant.imageUrl,
+            facebookUrl: restaurant.provider === "facebook" ? restaurant.scrapingUrl : null,
+         }, 
+         menuPriceHistory: {
+            byDay: menuPriceHistoryByDay,
+            byWeek: menuPriceHistoryByWeek
+         }
+    });
 })
 
 export default mainRouter;
