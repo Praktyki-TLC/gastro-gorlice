@@ -15,4 +15,7 @@ export interface TodayMenu {
     } | null;
 }
 
-export type TodayMenusResponse = TodayMenu[];
+export type TodayMenusResponse = {
+    lastUpdate: Date | null;
+    todayMenus: TodayMenu[];
+};
