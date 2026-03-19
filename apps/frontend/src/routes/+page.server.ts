@@ -5,10 +5,11 @@ import type { TodayMenusResponse } from "shared";
 
 export const load: PageServerLoad = async () => {
   const req = await fetch(`${BACKEND_URL}/menus/today`)
-  const todayMenus: TodayMenusResponse = await req.json();
+  const res: TodayMenusResponse = await req.json();
 
   return {
-    todayMenus
+    todayMenus: res.todayMenus,
+    lastUpdate: res.lastUpdate
   }
 };
 
