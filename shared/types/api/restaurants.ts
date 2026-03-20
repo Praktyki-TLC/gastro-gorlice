@@ -1,3 +1,5 @@
+import {type MenuContent} from './menus';
+
 export type RestaurantDetailsResponse = {
     restaurant: {
         name: string;
@@ -17,5 +19,10 @@ export type RestaurantDetailsResponse = {
             week: string;
             price: number;
         }[];
+    };
+    menusDates: string[];
+    lastMenu?: {
+        date: Date;
+        content: MenuContent;
     };
 }
