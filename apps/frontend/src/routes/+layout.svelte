@@ -1,9 +1,11 @@
 <script lang="ts">
   import "./layout.css";
-  import favicon from "$lib/assets/favicon.svg";
+  
+  import { goto, invalidateAll } from "$app/navigation";
   import { enhance, applyAction } from "$app/forms";
-  import { goto } from "$app/navigation";
-
+  
+  import favicon from "$lib/assets/favicon.svg";
+  
   let props = $props();
 
   let loginModal: HTMLDialogElement;
@@ -52,6 +54,7 @@
         return async ({ result }) => {
           if (result.type === "redirect") {
             loginModal.close();
+            await invalidateAll();
             goto(result.location);
           } else {
             await applyAction(result);
