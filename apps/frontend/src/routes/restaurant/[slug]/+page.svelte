@@ -56,9 +56,10 @@
       });
   }
 
+  let calendarRef: HTMLElement;
   onMount(() => {
-    document.querySelector(".menu-date-picker")?.addEventListener("change", updateMenu);
-  })
+    calendarRef.addEventListener("change", updateMenu);
+  });
 
   const isDateDisallowed = (date: Date) =>
     !data.menusDates.includes(date.toISOString().split("T")[0]);
@@ -89,11 +90,13 @@
     } else {
       const validData = menuPriceHistory.byWeek;
       return {
-        labels: validData.map((d) => new Date(d.week).toLocaleDateString("pl-PL", {
+        labels: validData.map((d) =>
+          new Date(d.week).toLocaleDateString("pl-PL", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
-          })),
+          }),
+        ),
         datasets: [
           {
             label: "Średnia cena (zł)",
@@ -114,7 +117,7 @@
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false, 
+        display: false,
       },
       tooltip: {
         callbacks: {
@@ -184,11 +187,12 @@
         <!-- svelte-ignore event_directive_deprecated -->
         <calendar-date
           class="cally bg-base-100 border border-base-300 shadow-lg rounded-box w-full menu-date-picker"
+          bind:this={calendarRef}
           {isDateDisallowed}
           value={lastMenu
             ? new Date(lastMenu.date).toISOString().split("T")[0]
             : undefined}
-            today="1970-01-01"
+          today="1970-01-01"
         >
           <svg
             aria-label="Poprzednie"
