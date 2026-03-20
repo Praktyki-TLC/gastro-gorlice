@@ -13,6 +13,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 
     const res: RestaurantDetailsResponse = await req.json();
     return {
-        ...res
+        ...res,
+        backendUrl: BACKEND_URL,
     };
 }
