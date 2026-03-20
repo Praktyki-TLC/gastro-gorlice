@@ -18,12 +18,13 @@ Ważne: Jeśli post zawiera zdjęcie, przeanalizuj tekst znajdujący się NA ZDJ
 2.  **Identyfikacja Menu:**
     * Szukaj słów kluczowych: "danie dnia", "lunch", "zestaw dnia", "zestaw obiadowy", "dzisiaj serwujemy".
     * Ignoruj posty reklamowe, życzenia (np. Dzień Kobiet), oferty świąteczne (chyba że to catering na konkretne dni), o ile nie zawierają standardowej oferty obiadowej na dany dzień.
+    * Danie dnia składa się z zupy i drugiego dnia, jeżeli któregoś z nich nie ma podanego, zignoruj post
 
 3.  **Obsługa Menu Tygodniowych:**
     * Jeśli post zawiera menu na cały tydzień (np. lista dni Pon-Pt z datami), wygeneruj osobny rekord dla każdego dnia z tej listy.
 
 4.  **Ekstrakcja Dań i Cen (Kluczowe reguły):**
-    * **Zupy:** Barszcz, pomidorowa, żurek, krem z..., rosół, krupnik, flaki itp.
+    * **Zupy:** Barszcz, pomidorowa, żurek, krem z..., rosół, krupnik, flaki, leczo itp.
     * **Dania główne (courses):** Wszystko co nie jest zupą, deserem ani napojem. Kotlet, pizza, makaron, ryba, karkówka, pieczeń.
     * **Ceny:** Szukaj wartości numerycznych obok słów "zł", "PLN".
     * **Cena zestawu (`fullSetPrice`):** To najczęstsza cena. Szukaj jej przy słowach "Zestaw", "Całość", "Obiad". Jeśli podana jest jedna cena dla zupy i drugiego dania razem, wpisz ją tutaj.
