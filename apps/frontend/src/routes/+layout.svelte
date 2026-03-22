@@ -1,11 +1,13 @@
 <script lang="ts">
   import "./layout.css";
-  
+
   import { goto, invalidateAll } from "$app/navigation";
   import { enhance, applyAction } from "$app/forms";
-  
+
   import favicon from "$lib/assets/favicon.svg";
-  
+  import PasswordIcon from "$lib/components/icons/PasswordIcon.svelte";
+  import UserIcon from "$lib/components/icons/UserIcon.svelte";
+
   let props = $props();
 
   let loginModal: HTMLDialogElement;
@@ -21,36 +23,44 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
-<div class="navbar shadow-sm bg-base-200 md:px-10 lg:px-20">
-  <div class="flex-1">
-    <a class="btn btn-ghost text-xl font-bold" href="/">Gastro Gorlice</a>
-  </div>
-  <div class="flex-none">
-    <ul class="menu menu-horizontal px-1">
-      {#if props.data.isLoggedIn}
-        <li><a href="/admin">Panel</a></li>
-      {:else}
-        <li><button onclick={openLoginModal}>Zaloguj się</button></li>
-      {/if}
-    </ul>
+<div class="bg-base-200 shadow-sm">
+  <div class="navbar max-w-screen-2xl mx-auto p-4 md:px-8 lg:px-20">
+    <div class="flex-1">
+      <a class="text-xl font-bold" href="/"> Gastro Gorlice </a>
+    </div>
+    <div class="flex-none">
+      <ul class="menu menu-horizontal p-0">
+        {#if props.data.isLoggedIn}
+          <li><a href="/admin" class="btn btn-ghost">Panel</a></li>
+        {:else}
+          <li>
+            <button onclick={openLoginModal} class="btn btn-ghost">
+              Zaloguj się
+            </button>
+          </li>
+        {/if}
+      </ul>
+    </div>
   </div>
 </div>
 
-<dialog bind:this={loginModal} class="modal sm:modal-middle">
+<!-- Login modal -->
+<dialog bind:this={loginModal} class="modal modal-middle">
   <div class="modal-box">
     <!-- Close button -->
     <form method="dialog">
-      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-        >✕</button
-      >
+      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+        ✕
+      </button>
     </form>
 
-    <h3 class="text-lg font-bold">Logowanie</h3>
+    <h3 class="text-xl font-bold mb-6">Zaloguj się</h3>
 
     <form
       action="/?/login"
       method="post"
-      use:enhance={({ formElement, formData, action, cancel }) => {
+      class="space-y-4"
+      use:enhance={() => {
         return async ({ result }) => {
           if (result.type === "redirect") {
             loginModal.close();
@@ -63,23 +73,8 @@
       }}
     >
       <!-- Username input -->
-      <label class="input my-4 w-full">
-        <svg
-          class="h-[1em] opacity-50"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-        >
-          <g
-            stroke-linejoin="round"
-            stroke-linecap="round"
-            stroke-width="2.5"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </g>
-        </svg>
+      <label class="input w-full">
+        <UserIcon />
         <input
           type="text"
           required
@@ -91,24 +86,7 @@
 
       <!-- Password input -->
       <label class="input w-full">
-        <svg
-          class="h-[1em] opacity-50"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-        >
-          <g
-            stroke-linejoin="round"
-            stroke-linecap="round"
-            stroke-width="2.5"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path
-              d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"
-            ></path>
-            <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
-          </g>
-        </svg>
+        <PasswordIcon />
         <input
           type="password"
           required
@@ -119,18 +97,20 @@
       </label>
 
       {#if props.form?.message}
-        <p class="text-red-500 text-sm my-2">{props.form?.message}</p>
+        <div class="text-red-500 text-sm mt-2">
+          <span>{props.form?.message}</span>
+        </div>
       {/if}
 
       <!-- Login button -->
-      <div class="modal-action">
-        <button class="btn btn-block">Zaloguj się</button>
-      </div>
+      <button class="btn btn-block">Zaloguj się</button>
     </form>
   </div>
   <form method="dialog" class="modal-backdrop">
-    <button>close</button>
+    <button>zamknij</button>
   </form>
 </dialog>
 
-{@render props.children()}
+<div class="min-h-[calc(100vh-4rem)]">
+  {@render props.children()}
+</div>
