@@ -55,10 +55,9 @@
 
   {#if menus.length === 0}
     <div class="py-20 text-center">
-      <div class="text-4xl mb-4">🍽️</div>
       <h3 class="text-lg font-bold">Brak wyników</h3>
       <p class="text-base-content/60">
-        Nie znaleźliśmy restauracji pasującej do "{searchQuery}"
+        Nie znaleziono restauracji pasującej do "{searchQuery}"
       </p>
     </div>
   {:else}
@@ -182,11 +181,11 @@
         </div>
       {/each}
     </div>
+    {#if lastUpdate}
+      <p class="text-sm text-base-content/70 mt-6 text-center">
+        Ostatnia aktualizacja: <span class="font-semibold">{lastUpdate}</span>
+      </p>
+    {/if}
   {/if}
 
-  {#if lastUpdate}
-    <p class="text-sm text-base-content/70 mt-6 text-center">
-      Ostatnia aktualizacja: <span class="font-semibold">{lastUpdate}</span>
-    </p>
-  {/if}
 </main>
