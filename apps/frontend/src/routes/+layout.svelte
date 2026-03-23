@@ -3,8 +3,8 @@
 
   import { goto, invalidateAll, onNavigate } from "$app/navigation";
   import { enhance, applyAction } from "$app/forms";
-  import { navigating } from '$app/state';
-  import { fade } from 'svelte/transition';
+  import { navigating } from "$app/state";
+  import { fade } from "svelte/transition";
 
   import favicon from "$lib/assets/favicon.svg";
   import PasswordIcon from "$lib/components/icons/PasswordIcon.svelte";
@@ -16,12 +16,12 @@
 
   let login: string = $state("");
   let password: string = $state("");
-  
+
   let isNavigating = $derived(!!navigating.to);
-  
+
   onNavigate((navigation) => {
     if (!document.startViewTransition) return;
-    
+
     return new Promise((resolve) => {
       document.startViewTransition(async () => {
         resolve();
@@ -39,8 +39,8 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 {#if isNavigating}
-  <div 
-    class="fixed top-0 left-0 right-0 h-1 z-100 bg-base-content overflow-hidden"
+  <div
+    class="fixed top-0 left-0 right-0 h-0.75 z-100 bg-base-content overflow-hidden"
     out:fade={{ duration: 400 }}
   >
     <div class="h-full animate-progress-bar"></div>
