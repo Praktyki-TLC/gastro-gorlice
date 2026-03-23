@@ -1,8 +1,10 @@
 <script lang="ts">
   import "./layout.css";
 
-  import { goto, invalidateAll } from "$app/navigation";
+  import { goto, invalidateAll, onNavigate } from "$app/navigation";
   import { enhance, applyAction } from "$app/forms";
+  import { navigating } from '$app/state';
+  import { fade } from 'svelte/transition';
 
   import favicon from "$lib/assets/favicon.svg";
   import PasswordIcon from "$lib/components/icons/PasswordIcon.svelte";
@@ -14,6 +16,19 @@
 
   let login: string = $state("");
   let password: string = $state("");
+  
+  let isNavigating = $derived(!!navigating.to);
+  
+  onNavigate((navigation) => {
+    if (!document.startViewTransition) return;
+    
+    return new Promise((resolve) => {
+      document.startViewTransition(async () => {
+        resolve();
+        await navigation.complete;
+      });
+    });
+  });
 
   function openLoginModal(e: MouseEvent) {
     e.preventDefault();
@@ -22,6 +37,15 @@
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
+
+{#if isNavigating}
+  <div 
+    class="fixed top-0 left-0 right-0 h-1 z-100 bg-base-content overflow-hidden"
+    out:fade={{ duration: 400 }}
+  >
+    <div class="h-full animate-progress-bar"></div>
+  </div>
+{/if}
 
 <div class="bg-base-200 shadow-sm">
   <div class="navbar max-w-screen-2xl mx-auto p-4 md:px-8 lg:px-20">
@@ -111,6 +135,6 @@
   </form>
 </dialog>
 
-<div class="min-h-[calc(100vh-4rem)]">
+<div class="min-h-[calc(100vh-4.5rem)]">
   {@render props.children()}
 </div>
