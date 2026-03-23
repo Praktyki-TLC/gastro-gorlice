@@ -5,22 +5,22 @@ import {
     menus,
     menusLogs,
     restaurants,
-    RestaurantSelect,
+    type RestaurantSelect,
 } from "shared";
-import { eq, and, sql, lte, gte } from "drizzle-orm";
+import { eq, and, lte, gte } from "drizzle-orm";
 import {
     analyzeFacebookPosts,
     processFacebookPosts,
     scrapeFacebookPosts,
 } from "./facebook/scraper";
 
-import fs from "fs/promises";
-
 export class MenusManager {
     private context: BrowserContext | null = null;
-    private currentLog: string | null = null;
+    private currentLog: string = "";
 
     private async initContext() {
+        if (this.context) return;
+
         const browser = await chromium.launch({
             headless: true,
             args: ["--disable-blink-features=AutomationControlled"],
@@ -35,6 +35,7 @@ export class MenusManager {
             locale: "pl-PL",
             timezoneId: "Europe/Warsaw",
         });
+
         await this.context.addInitScript(() => {
             Object.defineProperty(navigator, "webdriver", {
                 get: () => undefined,
@@ -56,33 +57,36 @@ export class MenusManager {
                 await this.context.addCookies(cookies);
                 this.log("Załadowano ciasteczka Facebooka.", "info");
             } catch (e) {
-                this.log("Błąd parsowania ciasteczek:" + e, "error");
+                this.log(
+                    `Błąd parsowania ciasteczek: ${(e as Error).message}`,
+                    "error",
+                );
             }
         }
     }
 
     public async updateMissingMenus() {
-        if (!this.context) await this.initContext();
+        await this.initContext();
         this.currentLog = "";
 
         const allRestaurants = await db.select().from(restaurants);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
-        const todayStr = today.toLocaleDateString("pl-PL", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-        });
-        const todayISO = today.toLocaleDateString("sv-SE");
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const todaysMenus = await db
+            .select({ restaurantId: menus.restaurantId })
+            .from(menus)
+            .where(gte(menus.date, startOfToday));
+
+        const restaurantsWithMenuToday = new Set(
+            todaysMenus.map((m) => m.restaurantId),
+        );
 
         for (const restaurant of allRestaurants) {
             this.log(`\n🔍 Sprawdzam ${restaurant.name}...`);
 
-            const hasToday = await this.checkIfMenuExists(restaurant.id, today);
-
-            if (hasToday) {
+            if (restaurantsWithMenuToday.has(restaurant.id)) {
                 this.log(
                     `Menu dla ${restaurant.name} już aktualne.`,
                     "success",
@@ -90,86 +94,106 @@ export class MenusManager {
                 continue;
             }
 
-            switch (restaurant.provider) {
-                case "facebook": {
-                    await this.getMenusFromFacebook(restaurant);
-                    break;
-                }
+            if (restaurant.provider === "facebook") {
+                await this.getMenusFromFacebook(restaurant);
             }
         }
 
         this.log("\n✅ Aktualizacja zakończona.");
+        await this.saveLog();
+    }
 
-        /* Zapisywanie logów do bazy */
-        db.insert(menusLogs)
-            .values({
+    private async saveLog() {
+        try {
+            await db.insert(menusLogs).values({
                 log: this.currentLog || "",
                 createdAt: new Date(),
-            })
-            .then(() => {
-                this.log("Log zapisany do bazy danych.", "info");
-            })
-            .catch((e) => {
-                this.log("Błąd zapisu logu do bazy danych: " + e, "error");
             });
+            this.log("Log zapisany do bazy danych.", "info");
+        } catch (e) {
+            this.log(
+                `Błąd zapisu logu do bazy danych: ${(e as Error).message}`,
+                "error",
+            );
+        }
     }
 
     private async getMenusFromFacebook(restaurant: RestaurantSelect) {
-        if (!restaurant.scrapingUrl) return;
+        if (!restaurant.scrapingUrl || !this.context) return;
 
-        this.log(`  📱 Scrapowanie: ${restaurant.scrapingUrl}`);
-        const posts = (
-            await scrapeFacebookPosts(
-                this.context as BrowserContext,
+        this.log(`📱 Scrapowanie: ${restaurant.scrapingUrl}`, "log", 1);
+
+        try {
+            const rawPosts = await scrapeFacebookPosts(
+                this.context,
                 restaurant.scrapingUrl,
-            )
-        ).slice(0, 5);
-        this.log(`     Znaleziono ${posts.length} postów.`);
+            );
+            const postsToProcess = rawPosts.slice(0, 5);
+            this.log(
+                `Znaleziono ${postsToProcess.length} najnowszych postów.`,
+                "log",
+                3,
+            );
 
-        const processedPosts = await processFacebookPosts(
-            this.context as BrowserContext,
-            posts,
-        );
-        this.log(
-            `     Znaleziono ${processedPosts.filter((p) => !!p.imageData).length} zdjęć postów.`,
-        );
+            const processedPosts = await processFacebookPosts(
+                this.context,
+                postsToProcess,
+            );
+            const imageCount = processedPosts.filter(
+                (p) => !!p.imageData,
+            ).length;
+            this.log(`Przetworzono ${imageCount} zdjęć do analizy.`, "log", 3);
 
-        const menus = await analyzeFacebookPosts(processedPosts);
-        if (menus) {
-            for (const [dateKey, content] of Object.entries(menus)) {
-                const targetDate = new Date(dateKey);
-                await this.saveMenuIfMissing(
-                    restaurant.id,
-                    targetDate,
-                    content,
+            const analyzedMenus = await analyzeFacebookPosts(processedPosts);
+
+            if (analyzedMenus && Object.keys(analyzedMenus).length > 0) {
+                for (const [dateKey, content] of Object.entries(
+                    analyzedMenus,
+                )) {
+                    await this.saveMenuIfMissing(
+                        restaurant.id,
+                        new Date(dateKey),
+                        content,
+                    );
+                }
+            } else {
+                this.log(
+                    `⚠️ Nie wyodrębniono żadnego menu z postów.`,
+                    "warning",
+                    3,
                 );
             }
-        } else {
-            this.log(`     ⚠️ Nie udało się wyodrębnić menu z postów.`);
+        } catch (error) {
+            this.log(
+                `❌ Błąd podczas scrapowania ${restaurant.name}: ${(error as Error).message}`,
+                "error",
+                3,
+            );
         }
     }
 
     private async checkIfMenuExists(
         restaurantId: number,
-        date: Date,
+        targetDate: Date,
     ): Promise<boolean> {
-        const startOfToday = new Date(date);
-        startOfToday.setHours(0, 0, 0, 0);
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
 
-        const endOfToday = new Date(date);
-        endOfToday.setHours(23, 59, 59, 999);
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
 
         const result = await db
-            .select()
+            .select({ id: menus.id })
             .from(menus)
             .where(
                 and(
                     eq(menus.restaurantId, restaurantId),
-                    gte(menus.date, startOfToday),
-                    lte(menus.date, endOfToday),
+                    gte(menus.date, startOfDay),
+                    lte(menus.date, endOfDay),
                 ),
             )
             .limit(1);
+
         return result.length > 0;
     }
 
@@ -183,7 +207,9 @@ export class MenusManager {
 
         if (isEmpty) {
             this.log(
-                `  ⚠️ Puste menu dla restauracji #${restaurantId} na dzień ${date.toISOString().split("T")[0]}. Pomijam.`,
+                `⚠️ Otrzymano pustą treść dla daty ${date.toISOString().split("T")[0]}. Pomijam.`,
+                "warning",
+                1,
             );
             return;
         }
@@ -193,39 +219,48 @@ export class MenusManager {
             await db.insert(menus).values({
                 restaurantId,
                 date,
-                content: content as any,
+                content: content,
             });
             this.log(
-                `     ✨ Zapisano nowe menu: ${date.toISOString().split("T")[0]}`,
+                `✨ Zapisano nowe menu na dzień: ${date.toISOString().split("T")[0]}`,
+                "log",
+                3,
             );
         }
     }
 
     async cleanup() {
         if (this.context) {
-            const browser = this.context.browser();
-            await browser?.close();
+            await this.context.browser()?.close();
             this.context = null;
         }
     }
 
-    log(text: string, severity: "log" | "success" | "info" | "warning" | "error" = "log") {
+    private log(
+        text: string,
+        severity: "log" | "success" | "info" | "warning" | "error" = "log",
+        indent: number = 0,
+    ) {
         const icons = {
             log: "",
             success: "✅ ",
-            info: "ℹ️ ",
+            info: "ℹ️  ",
             warning: "⚠️ ",
             error: "❌ ",
         };
 
-        const message = `${icons[severity]}${text}`;
-        
-        switch (severity) {
-            case "error": console.error(message); break;
-            case "warning": console.warn(message); break;
-            case "info": console.info(message); break;
-            default: console.log(message);
-        }
+        const indentation = "  ".repeat(indent);
+        const message = `${indentation}${icons[severity]}${text}`;
+
+        const consoleMethods = {
+            error: console.error,
+            warning: console.warn,
+            info: console.info,
+            success: console.log,
+            log: console.log,
+        };
+
+        consoleMethods[severity](message);
 
         this.currentLog += message + "\n";
     }
