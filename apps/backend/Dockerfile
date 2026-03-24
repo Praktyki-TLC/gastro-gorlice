@@ -23,8 +23,12 @@ RUN pnpm --filter shared build || true
 # W backendzie NIE robimy build (tsc), bo użyjemy tsx
 WORKDIR /app/apps/backend
 
+COPY docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Port na którym działa backend
 EXPOSE 4202
 
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 # Startujemy za pomocą tsx
 CMD ["pnpm", "start"]
