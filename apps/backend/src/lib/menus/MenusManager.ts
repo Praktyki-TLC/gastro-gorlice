@@ -158,7 +158,7 @@ export class MenusManager {
                 }
             } else {
                 this.log(
-                    `⚠️ Nie wyodrębniono żadnego menu z postów.`,
+                    `Nie wyodrębniono żadnego menu z postów.`,
                     "warning",
                     3,
                 );
@@ -245,7 +245,7 @@ export class MenusManager {
             log: "",
             success: "✅ ",
             info: "ℹ️  ",
-            warning: "⚠️ ",
+            warning: "⚠️  ",
             error: "❌ ",
         };
 
