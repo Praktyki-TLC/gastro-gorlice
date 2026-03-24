@@ -14,6 +14,8 @@ services:
             interval: 5s
             timeout: 5s
             retries: 5
+        networks:
+            - gastro-net
 
     backend:
         build:
@@ -27,8 +29,8 @@ services:
         environment:
             DATABASE_URL: postgres://user:password@db:5432/gastro_db
             GEMINI_API_KEY: ${GEMINI_API_KEY}
-        ports:
-            - "4202:4202"
+        networks:
+            - gastro-net
 
     frontend:
         build:
@@ -36,16 +38,22 @@ services:
             dockerfile: apps/frontend/Dockerfile
             args:
                 # To przekaże wartość z Twojego lokalnego .env do Dockera podczas budowania
-                - BACKEND_URL=http://gastro-backend:4202
+                - BACKEND_URL=http://backend:4202
         env_file: .env
         container_name: gastro-frontend
         depends_on:
             - backend
         environment:
             # Jeśli SvelteKit ma gadać z backendem po stronie serwera:
-            BACKEND_URL: http://gastro-backend:4202
+            BACKEND_URL: http://backend:4202
         ports:
             - "5173:5173"
+        networks:
+            - gastro-net
 
 volumes:
     postgres_data:
+
+networks:
+    gastro-net:
+        driver: bridge
