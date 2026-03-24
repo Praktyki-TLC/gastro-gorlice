@@ -1,5 +1,10 @@
 {
   "name": "shared",
   "packageManager": "pnpm@10.32.1",
-  "private": true
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "drizzle-orm": "^0.45.1",
+    "postgres": "^3.4.8"
+  }
 }
