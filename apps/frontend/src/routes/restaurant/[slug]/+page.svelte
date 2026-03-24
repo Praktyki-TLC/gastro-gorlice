@@ -15,7 +15,6 @@
     CategoryScale,
   } from "chart.js";
 
-  // Rejestracja modułów Chart.js
   ChartJS.register(
     Title,
     Tooltip,
@@ -39,14 +38,20 @@
   let lastMenu = $derived(data.lastMenu);
   let menuPriceHistory = $derived(data.menuPriceHistory);
 
+  const lastMenuDate = $derived(new Date(lastMenu?.date || 0));
+  const now = new Date();
+  const targetDate = $derived(lastMenuDate > now ? now : lastMenuDate);
+  const calendarDate = $derived(targetDate.toISOString().split("T")[0]);
+
   // svelte-ignore state_referenced_locally
   let menu = $state(lastMenu);
   let chartView = $state<"day" | "week">("day");
 
   function updateMenu(e: Event) {
-    fetch(
-      `${data.backendUrl}/menus/${restaurant.slug}/${(e.target as any)?.value}`,
-    )
+    const selectedDate = (e.target as HTMLInputElement)?.value;
+    if (!selectedDate) return;
+
+    fetch(`${data.backendUrl}/menus/${restaurant.slug}/${selectedDate}`)
       .then((res) => res.json())
       .then((res: MenuByDateResponse) => {
         menu = res;
@@ -59,6 +64,7 @@
   let calendarRef: HTMLElement;
   onMount(() => {
     calendarRef.addEventListener("change", updateMenu);
+    return () => calendarRef?.removeEventListener("change", updateMenu);
   });
 
   const isDateDisallowed = (date: Date) =>
@@ -116,9 +122,7 @@
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: false,
-      },
+      legend: { display: false },
       tooltip: {
         callbacks: {
           label: (context: any) => `${context.parsed.y} zł`,
@@ -135,18 +139,25 @@
   };
 </script>
 
-<div class="p-4 md:p-8 lg:px-25">
-  <div class="flex justify-between">
-    <div class="hidden lg:block"></div>
-    <h1 class="text-2xl lg:text-4xl font-bold">{restaurant.name}</h1>
-    <a href={restaurant.facebookUrl} class="btn btn-circle">
-      <FacebookIcon />
-    </a>
-  </div>
+<main class="p-4 md:p-8 lg:px-20 max-w-screen-2xl mx-auto">
+  <header class="flex justify-between items-start gap-4 mb-2">
+    <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight text-base-content">
+      {restaurant.name}
+    </h1>
+    {#if restaurant.facebookUrl}
+      <a
+        href={restaurant.facebookUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn btn-circle btn-ghost bg-base-200 shadow-sm"
+        aria-label="Facebook"
+      >
+        <FacebookIcon />
+      </a>
+    {/if}
+  </header>
 
-  <section
-    class="flex flex-col lg:flex-row flex-wrap lg:justify-center lg:items-center mt-4 gap-2 lg:gap-8 lg:mx-10"
-  >
+  <section class="flex flex-wrap items-center gap-x-6 gap-y-2 mb-8 text-base-content/80">
     {#if restaurant.phoneNumber}
       <a
         href={`tel:${restaurant.phoneNumber}`}
@@ -158,7 +169,7 @@
     {/if}
     {#if restaurant.address}
       <a
-        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
+        href={`https://maps.google.com/?q=${encodeURIComponent(restaurant.address)}`}
         target="_blank"
         rel="noopener noreferrer"
         class="link link-hover flex text-sm gap-1.5 items-center"
@@ -172,6 +183,7 @@
         href={restaurant.webpage}
         class="link link-hover flex text-sm gap-1.5 items-center"
         target="_blank"
+        rel="noopener noreferrer"
       >
         <WebsiteIcon />
         {restaurant.webpage}
@@ -179,19 +191,16 @@
     {/if}
   </section>
 
-  <section>
-    <h2 class="text-xl lg:text-2xl font-bold my-4">Dania dnia</h2>
+  <section class="mb-12">
+    <h2 class="text-xl lg:text-2xl font-bold mb-4">Dania dnia</h2>
 
-    <div class="flex flex-col md:flex-row items-stretch gap-2">
-      <div class="flex-1 md:flex-none">
-        <!-- svelte-ignore event_directive_deprecated -->
+    <div class="flex flex-col md:flex-row items-stretch gap-6">
+      <div class="flex-none w-full md:w-auto">
         <calendar-date
-          class="cally bg-base-100 border border-base-300 shadow-lg rounded-box w-full menu-date-picker"
+          class="cally bg-base-100 border border-base-200 shadow-sm rounded-box w-full menu-date-picker"
           bind:this={calendarRef}
           {isDateDisallowed}
-          value={lastMenu
-            ? new Date(lastMenu.date).toISOString().split("T")[0]
-            : undefined}
+          value={calendarDate}
           today="1970-01-01"
         >
           <svg
@@ -200,91 +209,95 @@
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             slot="previous"
-            ><path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5"
-            ></path></svg
-          >
+            ><path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
           <svg
             aria-label="Następne"
             class="fill-current size-4"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             slot="next"
-            ><path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5"
-            ></path></svg
-          >
+            ><path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
           <calendar-month></calendar-month>
         </calendar-date>
       </div>
 
-      <div class="p-5 flex flex-col justify-between flex-1">
-        {#if menu?.content}
-          <div>
-            <div class="space-y-4">
-              <section>
-                <h3
-                  class="text-xs font-semibold tracking-wider text-base-content/50 uppercase mb-2"
-                >
-                  Zupy
-                </h3>
-                <div class="space-y-1">
-                  {#each menu.content.soups as soup}
-                    <div class="flex justify-between items-start group">
-                      <span class="text-sm leading-tight text-base-content/80"
-                        >{soup.name}</span
-                      >
-                      {#if soup.price}<span class="text-xs font-mono ml-2"
-                          >{soup.price}zł</span
-                        >{/if}
+      <div class="card bg-base-100 border border-base-200 shadow-sm flex-1">
+        <div class="card-body p-5 flex flex-col justify-between">
+          {#if menu?.content && (menu.content.soups.length > 0 || menu.content.courses.length > 0)}
+            <div>
+              <div class="space-y-6">
+                {#if menu.content.soups.length > 0}
+                  <section>
+                    <h3 class="text-xs font-semibold tracking-wider text-base-content/50 uppercase mb-3">
+                      Zupy
+                    </h3>
+                    <div class="space-y-2">
+                      {#each menu.content.soups as soup}
+                        <div class="flex justify-between items-start group">
+                          <span class="text-sm leading-tight text-base-content/80">
+                            {soup.name}
+                          </span>
+                          {#if soup.price}
+                            <span class="text-xs font-mono ml-3 whitespace-nowrap bg-base-200 px-2 py-0.5 rounded">
+                              {soup.price} zł
+                            </span>
+                          {/if}
+                        </div>
+                      {/each}
                     </div>
-                  {/each}
-                </div>
-              </section>
-              <section>
-                <h3
-                  class="text-xs font-semibold tracking-wider text-base-content/50 uppercase mb-2"
-                >
-                  Drugie dania
-                </h3>
-                <div class="space-y-1">
-                  {#each menu.content.courses as course}
-                    <div class="flex justify-between items-start">
-                      <span class="text-sm leading-tight text-base-content/80"
-                        >{course.name}</span
-                      >
-                      {#if course.price}<span class="text-xs font-mono ml-2"
-                          >{course.price}zł</span
-                        >{/if}
+                  </section>
+                {/if}
+
+                {#if menu.content.courses.length > 0}
+                  <section>
+                    <h3 class="text-xs font-semibold tracking-wider text-base-content/50 uppercase mb-3">
+                      Drugie dania
+                    </h3>
+                    <div class="space-y-2">
+                      {#each menu.content.courses as course}
+                        <div class="flex justify-between items-start">
+                          <span class="text-sm leading-tight text-base-content/80">
+                            {course.name}
+                          </span>
+                          {#if course.price}
+                            <span class="text-xs font-mono ml-3 whitespace-nowrap bg-base-200 px-2 py-0.5 rounded">
+                              {course.price} zł
+                            </span>
+                          {/if}
+                        </div>
+                      {/each}
                     </div>
-                  {/each}
-                </div>
-              </section>
-            </div>
-          </div>
-          {#if menu.content.fullSetPrice}
-            <div
-              class="mt-6 pt-4 border-t border-dashed border-base-300 flex justify-between items-center"
-            >
-              <span class="text-xs uppercase font-semibold text-base-content/50"
-                >Danie dnia</span
-              >
-              <div class="text-xl font-bold">
-                {menu.content.fullSetPrice}
-                <span class="text-sm font-normal">zł</span>
+                  </section>
+                {/if}
               </div>
             </div>
+
+            {#if menu.content.fullSetPrice}
+              <div class="mt-8 pt-4 border-t border-dashed border-base-300 flex justify-between items-center bg-base-100">
+                <span class="text-xs uppercase font-semibold text-base-content/50">Danie dnia</span>
+                <div class="text-2xl font-extrabold">
+                  {menu.content.fullSetPrice}
+                  <span class="text-sm font-normal text-base-content">zł</span>
+                </div>
+              </div>
+            {/if}
+          {:else}
+            <div class="grow flex flex-col items-center justify-center opacity-40 py-10 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 class="text-lg font-bold">Brak menu</h3>
+              <p class="text-sm italic mt-1">Nie dodano jeszcze menu na ten dzień.</p>
+            </div>
           {/if}
-        {:else}
-          <p>Brak danych w tym dniu</p>
-        {/if}
+        </div>
       </div>
     </div>
   </section>
 
   {#if menuPriceHistory.byDay.filter((x) => x.price != null).length > 0}
-    <section class="mt-8">
-      <div
-        class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4"
-      >
+    <section>
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
         <h2 class="text-xl lg:text-2xl font-bold">Historia cen</h2>
 
         <div role="tablist" class="tabs tabs-boxed">
@@ -305,13 +318,11 @@
         </div>
       </div>
 
-      <div
-        class="bg-base-100 border border-base-300 shadow-lg rounded-box p-4 h-72 w-full"
-      >
+      <div class="bg-base-100 border border-base-200 shadow-sm rounded-box p-4 h-80 w-full">
         {#key chartView}
           <Line data={chartData} options={chartOptions} />
         {/key}
       </div>
     </section>
   {/if}
-</div>
+</main>
