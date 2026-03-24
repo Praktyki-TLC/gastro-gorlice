@@ -6,4 +6,7 @@ import path from "path";
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
   envDir: path.resolve(__dirname, "../../"),
+  ssr: {
+    noExternal: ["cally", "@recalcitrant/cally", "chart.js", "svelte-chartjs"],
+  },
 });

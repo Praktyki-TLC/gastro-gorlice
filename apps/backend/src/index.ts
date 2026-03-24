@@ -1,5 +1,4 @@
 import { serve } from "@hono/node-server";
-import { cors } from "hono/cors";
 import { CronJob } from "cron";
 import { Hono } from "hono";
 
