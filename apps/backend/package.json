@@ -3,11 +3,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "dev:db:seed": "tsx --env-file=../../.env drizzle/scripts/seed.ts",
+    "build": "echo 'Skipping tsc build, using tsx for runtime'",
+    "start": "tsx src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:seed": "tsx --env-file=../../.env drizzle/scripts/seed.ts"
+    "db:seed": "tsx drizzle/scripts/seed.ts"
   },
   "imports": {
     "#shared/*": "../../shared/*.ts"

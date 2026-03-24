@@ -10,18 +10,16 @@ import mainRouter from "./routers/mainRouter";
 const app = new Hono();
 
 export const menusManager = new MenusManager();
-new CronJob("0,10,30 10,11 * * 1-5", async () =>{
-    await menusManager.updateMissingMenus();
-}, null, true, "Europe/Warsaw", null, process.env.NODE_ENV === "development")
-
-app.use(
-    "*",
-    cors({
-        origin: process.env.FRONTEND_URL || "http://localhost:5173",
-        allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-        allowHeaders: ["Content-Type", "Authorization"],
-        credentials: true,
-    }),
+new CronJob(
+    "0,10,30 10,11 * * 1-5",
+    async () => {
+        await menusManager.updateMissingMenus();
+    },
+    null,
+    true,
+    "Europe/Warsaw",
+    null,
+    process.env.NODE_ENV === "development",
 );
 
 app.route("/", mainRouter);
