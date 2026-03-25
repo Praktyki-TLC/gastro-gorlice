@@ -6,7 +6,7 @@
   import { navigating } from "$app/state";
   import { fade } from "svelte/transition";
 
-  import favicon from "$lib/assets/favicon.svg";
+  import favicon from "$lib/assets/favicon.png";
   import PasswordIcon from "$lib/components/icons/PasswordIcon.svelte";
   import UserIcon from "$lib/components/icons/UserIcon.svelte";
 
