@@ -29,7 +29,7 @@ $ pnpm db:seed
 $ pnpm dev
 ```
 
-# Produkcja
+## Produkcja
 
 Projekt został przygotowany do uruchomienia w [Dockerze](https://www.docker.com/). Został przetestowany też używając [Dokploy](https://dokploy.com/).
 
