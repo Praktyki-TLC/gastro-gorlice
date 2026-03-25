@@ -28,3 +28,14 @@ $ pnpm db:push
 $ pnpm db:seed
 $ pnpm dev
 ```
+
+## Produkcja
+
+Projekt został przygotowany do uruchomienia w [Dockerze](https://www.docker.com/). Został przetestowany też używając [Dokploy](https://dokploy.com/).
+
+```bash
+$ git clone https://github.com/Praktyki-TLC/gastro-gorlice
+$ cd gastro-gorlice
+
+$ docker compose up 
+```

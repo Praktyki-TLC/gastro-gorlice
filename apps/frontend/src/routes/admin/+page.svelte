@@ -1,6 +1,8 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  let { data } = $props();
+  let { data, form } = $props();
+
+  let isSyncing = $state(false);
 </script>
 
 <main class="p-4 md:p-8 lg:px-20 max-w-screen-2xl mx-auto">
@@ -8,12 +10,41 @@
     class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8"
   >
     <div>
-      <h1 class="text-3xl font-bold tracking-tight">Panel Administratora</h1>
-      <p class="text-base-content/60">Zarządzaj bazą restauracji w systemie</p>
+      <h1 class="text-3xl font-bold tracking-tight text-base-content">
+        Panel Administratora
+      </h1>
+      <p class="text-base-content/60">
+        Zarządzaj bazą restauracji i systemem scrapowania
+      </p>
     </div>
-    <a href="/admin/new" class="btn btn-primary shadow-md"
-      >Dodaj nową restaurację</a
+
+    <div class="flex gap-2">
+      <a href="/admin/logs" class="btn btn-outline">Logi systemowe</a>
+      <a href="/admin/new" class="btn btn-primary shadow-md">Dodaj nową</a>
+    </div>
+  </div>
+
+  <div
+    class="bg-base-200/50 p-4 rounded-box mb-8 flex items-center justify-between border border-base-300"
+  >
+    <div class="text-sm font-medium">Synchronizacja danych:</div>
+    <form
+      method="POST"
+      action="?/sync"
+      use:enhance={() => {
+        isSyncing = true;
+        return async ({ update }) => {
+          isSyncing = false;
+          await update();
+        };
+      }}
     >
+      <button class="btn btn-sm btn-secondary" disabled={isSyncing}>
+        {#if isSyncing}<span class="loading loading-spinner loading-xs"
+          ></span>{/if}
+        Wymuś pełny Sync
+      </button>
+    </form>
   </div>
 
   <div
@@ -44,15 +75,13 @@
                 <a href="/admin/{restaurant.id}" class="btn btn-ghost btn-sm"
                   >Edytuj</a
                 >
+
                 <form
                   method="POST"
                   action="?/delete"
-                  use:enhance={() => {
-                    return async ({ result, update }) => {
-                      if (confirm(`Czy na pewno usunąć ${restaurant.name}?`)) {
-                        await update();
-                      }
-                    };
+                  use:enhance={({ cancel }) => {
+                    if (!confirm(`Czy na pewno usunąć ${restaurant.name}?`))
+                      return cancel();
                   }}
                 >
                   <input type="hidden" name="id" value={restaurant.id} />

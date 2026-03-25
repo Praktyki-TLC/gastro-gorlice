@@ -21,4 +21,9 @@ export const actions = {
     if (!res.ok) return fail(res.status, { message: "Błąd podczas usuwania" });
     return { success: true };
   },
+  sync: async ({ fetch }) => {
+    const res = await fetch(`${BACKEND_URL}/admin/sync`, { method: "POST" });
+    if (!res.ok) return fail(500, { message: "Sync nieudany" });
+    return { success: true };
+  },
 };
