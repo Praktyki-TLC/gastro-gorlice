@@ -146,7 +146,7 @@ export async function analyzeFacebookPosts(
     if (posts.length === 0) return {};
 
     const model = genAI.getGenerativeModel({
-        model: "gemini-3.1-flash-lite-preview",
+        model: process.env.GEMINI_MODEL || "gemini-3.1-flash-lite-preview",
         generationConfig: { responseMimeType: "application/json" },
     });
 

@@ -10,7 +10,7 @@ const app = new Hono();
 
 export const menusManager = new MenusManager();
 new CronJob(
-    "0,10,30 10-12 * * 1-5",
+    "0,10,30 10-12 * * *",
     async () => {
         await menusManager.updateMissingMenus();
     },
