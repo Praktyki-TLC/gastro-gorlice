@@ -18,6 +18,8 @@ Monorepo projektu gastro-gorlice.pl
 
 - Wszystkie formularze (logowanie i na admin panelu) obsługiwane są za pomocą [Form Actions](https://svelte.dev/docs/kit/form-actions), przez co nie ma potrzeby wystawiania backendu na zewnątrz, co zostało zrobione w przykładowej konfiguracji `docker-compose.yml`
 
+- Dokumentacji backendu nie ma, ale można łatwo wywnioskować wszystko z plików [mainRouter.ts](https://github.com/Praktyki-TLC/gastro-gorlice/blob/main/apps/backend/src/routers/mainRouter.ts) i [adminRouter.ts](https://github.com/Praktyki-TLC/gastro-gorlice/blob/main/apps/backend/src/routers/adminRouter.ts)
+
 ## Użyte technologie:
 
 ### Backend
