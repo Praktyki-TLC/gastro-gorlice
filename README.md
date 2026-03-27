@@ -2,6 +2,8 @@
 
 Monorepo projektu gastro-gorlice.pl
 
+![Restaurant details page screenshot](https://github.com/Praktyki-TLC/gastro-gorlice/blob/main/assets/restaurant-page.png?raw=true)
+
 ## Informacje
 
 - Projekt składa się z dwóch aplikacji (`/apps/backend`, `/apps/frontend`) oraz modułu współdzielonego (/shared). Monorepo używa `pnpm workspace`. Do jego działania muszą być uruchomione obydzie naraz! W przeciwnym wypadku przy każdym requeście frontend wyrzuci error `HTTP 500 Internal server error`.
