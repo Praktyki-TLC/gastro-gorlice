@@ -10,7 +10,7 @@ Monorepo projektu gastro-gorlice.pl
 
 - Codziennie kilka razy (10-12:00,10,30) odpala się scraper Facebooka, który pobiera posty z profili konkretnych restauracji, a następnie posty są analizowane przez AI i zapisywane jako dania dnia do bazy danych.
 
-- Przy pierwszym uruchomieniu należy odpalić skrypt `pnpm db:push`, który wprowadzi strukturę bazy danych oraz skrypt `pnpm db:seed`, który umieści przykładowe restauracje. 
+- Przy pierwszym uruchomieniu należy odpalić skrypt `pnpm db:push`, który wprowadzi strukturę bazy danych oraz skrypt `pnpm db:seed`, który umieści przykładowe restauracje.
 
 - Na frontendzie znajduje się prosty admin panel (`GET /admin`), do którego logujemy się danymi z pliku `.env` (`ADMIN_USER`, `ADMIN_PASSWORD`). Można w nim wymusić sync (odpalenie scrapera), zarządzać restauracjami i wyświetlać logi scrapera.
 
@@ -29,7 +29,7 @@ Monorepo projektu gastro-gorlice.pl
 - [Hono](https://hono.dev/)
 - [drizzle](https://orm.drizzle.team/)
 - [Playwright](https://playwright.dev/)
-- [Google Generative AI](https://www.npmjs.com/package/@google/generative-ai) 
+- [Google Generative AI](https://www.npmjs.com/package/@google/generative-ai)
 
 ### Frontend
 
@@ -43,6 +43,24 @@ Monorepo projektu gastro-gorlice.pl
 
 Projekt został przygotowany do uruchomienia w [Dockerze](https://www.docker.com/). Został przetestowany używając [Dokploy](https://dokploy.com/).
 
+#### Wersja z proxy Tailscale (zalecane)
+
+Facebook bardzo lubi blokować adresy IP serwerowni/data centre, więc często uniemożliwia działanie aplikacji na serwerach vps. Prostym trikiem na obejście tego problemu jest routowanie każdego requestu backendu przez zewnętrzny komputer, trzymany przykładowo w naszym domu. Komputer ten musi mieć zainstalowane proxy [Tailscale](https://tailscale.com/) i być dodany do tej samej sieci co serwer.
+
+Do konfiguracji proxy potrzebujemy wygenerować [Tailscale Auth key](https://login.tailscale.com/admin/settings/keys), najlepiej z opcją `Ephemeral` (serwer nie będzie wyświetlał się w liście hostów, gdy kontener jest wyłączony).
+
+```bash
+$ git clone https://github.com/Praktyki-TLC/gastro-gorlice
+$ cd gastro-gorlice
+
+$ cp .env.example .env
+# Uzupełnić .env danymi (GEMINI_API_KEY, FACEBOOK_COOKIES, ADMIN_USER, ADMIN_PASSWORD, NODE_ENV=production, TAILSCALE_AUTHKEY, TAILSCALE_HOSTNAME i TAILSCALE_EXIT_NODE)
+
+$ docker compose --file ./docker-compose.proxy.yml up
+```
+
+#### Wersja bez proxy
+
 ```bash
 $ git clone https://github.com/Praktyki-TLC/gastro-gorlice
 $ cd gastro-gorlice
@@ -50,7 +68,7 @@ $ cd gastro-gorlice
 $ cp .env.example .env
 # Uzupełnić .env danymi (GEMINI_API_KEY, FACEBOOK_COOKIES, ADMIN_USER, ADMIN_PASSWORD, NODE_ENV=production)
 
-$ docker compose up 
+$ docker compose up
 ```
 
 ### Development
@@ -69,4 +87,3 @@ $ pnpm db:push
 $ pnpm db:seed
 $ pnpm dev
 ```
-

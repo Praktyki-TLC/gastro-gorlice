@@ -21,6 +21,24 @@ services:
         networks:
             - gastro-net
 
+    tailscale:
+        image: tailscale/tailscale:latest
+        container_name: gastro-tailscale
+        hostname: ${TAILSCALE_HOSTNAME:-gastro-gorlice-scraper}
+        environment:
+            - TS_AUTHKEY=${TAILSCALE_AUTHKEY}
+            - TS_STATE_DIR=/var/lib/tailscale
+            - TS_EXTRA_ARGS=--exit-node=${TAILSCALE_EXIT_NODE:-tailscale-exit-node} --exit-node-allow-lan-access
+        volumes:
+            - tailscale_data:/var/lib/tailscale
+            - /dev/net/tun:/dev/net/tun
+        cap_add:
+            - net_admin
+            - sys_module
+        networks:
+            - gastro-net
+        restart: always
+
     backend:
         build:
             context: .
@@ -30,24 +48,28 @@ services:
         depends_on:
             db:
                 condition: service_healthy
+            tailscale:
+                condition: service_started
         environment:
             DATABASE_URL: postgres://${DB_USER:-user}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-gastro_db}
             GEMINI_API_KEY: ${GEMINI_API_KEY}
-        networks:
-            - gastro-net
+            GEMINI_MODEL: ${GEMINI_MODEL}
+            NODE_ENV: ${NODE_ENV:-production}
+        network_mode: "service:tailscale"
 
     frontend:
         build:
             context: .
             dockerfile: apps/frontend/Dockerfile
             args:
-                - BACKEND_URL=http://backend:4202
+                - BACKEND_URL=http://tailscale:4202
         env_file: .env
         container_name: gastro-frontend
         depends_on:
             - backend
         environment:
-            BACKEND_URL: http://backend:4202
+            BACKEND_URL: http://tailscale:4202
+            NODE_ENV: ${NODE_ENV:-production}
         ports:
             - "5173:5173"
         networks:
@@ -55,6 +77,7 @@ services:
 
 volumes:
     postgres_data:
+    tailscale_data:
 
 networks:
     gastro-net:
