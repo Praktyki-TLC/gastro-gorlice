@@ -21,10 +21,20 @@ export class MenusManager {
     private async initContext() {
         if (this.context) return;
 
-        const browser = await chromium.launch({
+        const useProxy =
+            process.env.TAILSCALE_AUTHKEY && process.env.TAILSCALE_EXIT_NODE;
+
+        const launchOptions: any = {
             headless: true,
             args: ["--disable-blink-features=AutomationControlled"],
-        });
+        };
+
+        if (useProxy)
+            launchOptions.proxy = {
+                server: "socks5://localhost:1055",
+            };
+
+        const browser = await chromium.launch(launchOptions);
 
         const androidConfig = devices["Pixel 7"];
 
