@@ -138,7 +138,8 @@ mainRouter.get("/restaurant/:slug", async (c) => {
         })
         .from(menus)
         .where(eq(menus.restaurantId, restaurant.id))
-        .orderBy(asc(menus.date)).limit(14);
+        .orderBy(desc(menus.date))
+        .limit(14);
 
     const menuPriceHistoryByWeek = await db
         .select({
@@ -148,7 +149,8 @@ mainRouter.get("/restaurant/:slug", async (c) => {
         .from(menus)
         .where(eq(menus.restaurantId, restaurant.id))
         .groupBy(sql`week`)
-        .orderBy(asc(sql`week`)).limit(10);
+        .orderBy(desc(sql`week`))
+        .limit(10);
 
     return c.json<RestaurantDetailsResponse>({
         restaurant: {
